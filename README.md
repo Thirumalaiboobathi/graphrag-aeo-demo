@@ -4,11 +4,12 @@ A local, working GraphRAG system: ask a question in plain English and get an ans
 
 > Ask *"Can I use Hybrid Search on the free Starter plan?"* and get back a direct, cited answer pulled from an actual Cypher traversal — not a guess.
 
-**Companion article:** [Beyond SEO: AI-Agent-Readable Sites with Graphs and llms.txt](https://builder.aws.com/content/3G4x0sjXzKGRGdljxp19pwSmtGX/beyond-seo-ai-agent-readable-sites-with-graphs-and-llmstxt) (AWS Builder Center) — this repo is the working demo behind that article. See also [docs/AEO-mapping.md](docs/AEO-mapping.md) for a detailed mapping between the failure modes reproduced here and real-world Answer Engine Optimization (AEO) issues, written as base material for a follow-up piece.
+**Companion article:** [Beyond SEO: AI-Agent-Readable Sites with Graphs and llms.txt](https://builder.aws.com/content/3G4x0sjXzKGRGdljxp19pwSmtGX/beyond-seo-ai-agent-readable-sites-with-graphs-and-llmstxt) (AWS Builder Center) — this repo is the **reasoning simulator** companion to that article, reproducing what an AI answer engine does under the hood. See also [docs/AEO-mapping.md](docs/AEO-mapping.md) for a detailed mapping between the failure modes reproduced here and real-world Answer Engine Optimization (AEO) issues, written as base material for a follow-up piece.
 
 ## Table of Contents
 
 - [Why This Exists](#why-this-exists)
+- [How This Connects to AEO](#how-this-connects-to-aeo)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
@@ -23,7 +24,20 @@ A local, working GraphRAG system: ask a question in plain English and get an ans
 
 ## Why This Exists
 
+This demo is not a website AEO tool — it's a **reasoning simulator**. It reproduces what happens inside an AI answer engine when it retrieves and connects facts, so you can see firsthand why structured content (knowledge graphs, Schema.org, llms.txt) leads to better AI answers than unstructured prose. Your website is the input. GPT is the pipeline. This demo shows you what that pipeline is actually doing under the hood.
+
 Most "RAG" demos retrieve chunks of text and hope the LLM stitches them together correctly. This demo retrieves **structured facts** from a knowledge graph instead — so multi-hop questions ("does the cheapest plan that unlocks Feature X also happen to be the cheapest plan overall?") get answered deterministically by Cypher, and the LLM's only job is to read facts and write prose. The graph reasons; the model writes.
+
+## How This Connects to AEO
+
+| Dimension | AEO (real websites) | This Demo (local graph) |
+|---|---|---|
+| What the AI sees | Website HTML, JSON-LD, text | Neo4j graph nodes and edges |
+| What the AI does | Extract entities, connect facts, generate answer | Extract entities, traverse graph, generate answer |
+| What breaks it | Vague content, inconsistent naming, JS-only pages | Vague queries, mismatched entity names, missing nodes |
+| Failure result | Not cited or hallucinated in AI answers | 0 facts retrieved or wrong answer generated |
+
+***AEO tells you WHAT to build. This demo shows you WHY it works.***
 
 ## Architecture
 
@@ -228,3 +242,4 @@ docker logs graphrag-neo4j
 3. **Hop budgets matter.** Without a bail-out condition, a persistently "insufficient" verdict can loop forever.
 4. **Triples beat raw JSON.** Formatting graph results as `A --REL--> B` (instead of verbose Cypher JSON) is what the LLM reads well and cheaply.
 5. **This scales down beautifully.** The same code runs on Neo4j Community locally and Amazon Neptune in production — Cypher is portable.
+6. **The failure modes here mirror real AEO failures.** When entity extraction misses a node in this demo, it's the same mechanism that causes GPT to miss your product on a poorly-structured website — inconsistent naming, unclear entities, unlinked facts. Fix them in the graph and you understand how to fix them on a real site.
